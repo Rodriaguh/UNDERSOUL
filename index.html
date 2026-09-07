@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNDERSOUL</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- Corazón Soul Pixelart -->
+        <img id="soul-heart" src="img/corazon.png.png" alt="Heart" class="pixelart-heart">
+
+        <!-- Logo -->
+        <div id="logo-wrapper">
+            <img src="img/logo.png" alt="UNDERSOUL" class="logo-img">
+        </div>
+
+        <!-- Botones de Menú -->
+        <div id="menu-buttons">
+            <div class="nav-item">
+                <button class="btn" id="btn-inicio"><span class="btn-text">inicio</span></button>
+            </div>
+
+            <div class="nav-item">
+                <button class="btn" id="btn-busqueda"><span class="btn-text">busqueda</span></button>
+            </div>
+
+            <!-- Desplegable Personajes -->
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle" id="btn-personajes"><span class="btn-text">personajes &#9661;</span></button>
+                <div class="dropdown-menu">
+                    <button class="btn dropdown-item" data-filter="todos"><span class="btn-text">Todos</span></button>
+                    <button class="btn dropdown-item" data-filter="originales"><span class="btn-text">Originales</span></button>
+                    <button class="btn dropdown-item" data-filter="neutral"><span class="btn-text">Neutral</span></button>
+                    <button class="btn dropdown-item" data-filter="amigables"><span class="btn-text">Amigables</span></button>
+                    <button class="btn dropdown-item" data-filter="comunidad"><span class="btn-text">Comunidad</span></button>
+                </div>
+            </div>
+
+            <!-- Botón / Desplegable Crea tu personaje -->
+            <div class="nav-item dropdown" id="container-crear">
+                <button class="btn dropdown-toggle" id="btn-crear"><span class="btn-text" id="label-btn-crear">crea tu personaje</span></button>
+                <div class="dropdown-menu" id="menu-crear-dropdown">
+                    <button class="btn dropdown-item" id="btn-sub-admin"><span class="btn-text">Administrar personajes</span></button>
+                    <button class="btn dropdown-item" id="btn-sub-crear"><span class="btn-text">crear un personaje</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Escenario del Personaje Random y Piso -->
+        <div id="escenario-container">
+            <div class="escenario">
+                <img id="personaje-random" class="personaje-img" src="" alt="Personaje">
+                <img src="img/piso.png" alt="Piso" class="piso-img">
+            </div>
+        </div>
+
+        <!-- Sección Lista de Personajes -->
+        <div id="character-list-section" class="panel-section hidden">
+            <h2 class="section-title">PERSONAJES</h2>
+            <div class="characters-grid" id="characters-container"></div>
+        </div>
+
+        <!-- Sección Formulario (Crear Personaje - Estilo Goner Maker) -->
+        <div id="character-creator-section" class="panel-section hidden">
+            <h2 id="creator-step-title" class="section-title">SELECCIONA LA CABEZA QUE PREFIERAS</h2>
+            
+            <!-- Vista previa visual del sprite en capas -->
+            <div class="creator-preview-container">
+                <!-- Indicador Corazón -->
+                <div class="creator-heart-indicator">❤️</div>
+
+                <!-- Ensamblador de partes -->
+                <div class="character-assembly">
+                    <img id="preview-head" class="part-layer" src="img/sprites/head1.png" alt="Cabeza">
+                    <img id="preview-torso" class="part-layer" src="img/sprites/torso1.png" alt="Torso">
+                    <img id="preview-legs" class="part-layer" src="img/sprites/legs1.png" alt="Piernas">
+                </div>
+
+                <!-- Carrusel de Selección Horizontal -->
+                <div id="carousel-controls" class="selector-carousel">
+                    <button type="button" id="btn-prev-part" class="btn">&lt;</button>
+                    <span id="part-counter">1 / 3</span>
+                    <button type="button" id="btn-next-part" class="btn">&gt;</button>
+                </div>
+            </div>
+
+            <!-- Formulario Final (Aparece tras elegir piernas) -->
+            <form id="character-form">
+                <!-- Campos ocultos para enviar los sprites seleccionados a la BD -->
+                <input type="hidden" id="sprite-head" name="head">
+                <input type="hidden" id="sprite-torso" name="torso">
+                <input type="hidden" id="sprite-legs" name="legs">
+
+                <div id="final-stats-fields" class="hidden">
+                    <div class="form-group">
+                        <label for="nombre">Nombre:</label>
+                        <input type="text" id="nombre" name="nombre" placeholder="Ej. Frisk" maxlength="15" required autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="apellido">Apellido:</label>
+                        <input type="text" id="apellido" name="apellido" placeholder="Ej. Dreemurr" maxlength="15" required autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="raza">Raza:</label>
+                        <select id="raza" name="raza" required>
+                            <option value="Humano">Humano</option>
+                            <option value="Monstruo">Monstruo</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ataque">Ataque (ATK):</label>
+                        <input type="number" id="ataque" name="ataque" value="10" min="1" max="99" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="defensa">Defensa (DEF):</label>
+                        <input type="number" id="defensa" name="defensa" value="10" min="1" max="99" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vida">Vida (HP):</label>
+                        <input type="number" id="vida" name="vida" value="20" min="1" max="999" required>
+                    </div>
+                </div>
+
+                <button type="button" id="btn-step-action" class="btn btn-submit"><span class="btn-text">SIGUIENTE</span></button>
+            </form>
+
+            <div id="form-response"></div>
+        </div>
+
+        <!-- Sección Administrar Personajes -->
+        <section id="character-admin-section" class="panel-section hidden">
+            <h2 class="section-title">ADMINISTRAR PERSONAJES</h2>
+
+            <div class="form-group">
+                <label for="select-edit-character">SELECCIONA UN PERSONAJE PARA EDITAR:</label>
+                <select id="select-edit-character">
+                    <option value="">-- Selecciona un personaje --</option>
+                </select>
+            </div>
+
+            <!-- Contenedor general en layout de 2 columnas -->
+            <div id="admin-character-form" class="admin-layout hidden">
+                
+                <!-- Columna Izquierda: Formulario -->
+                <form id="admin-form-data" class="admin-fields">
+                    <input type="hidden" id="edit-id" name="id">
+
+                    <div class="form-grid-2col">
+                        <div class="form-group">
+                            <label for="edit-nombre">NOMBRE</label>
+                            <input type="text" id="edit-nombre" name="nombre" maxlength="15" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-apellido">APELLIDO</label>
+                            <input type="text" id="edit-apellido" name="apellido" maxlength="15" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-raza">RAZA</label>
+                        <select id="edit-raza" name="raza">
+                            <option value="Humano">Humano</option>
+                            <option value="Monstruo">Monstruo</option>
+                            <option value="Esqueleto">Esqueleto</option>
+                        </select>
+                    </div>
+
+                    <div class="form-grid-3col">
+                        <div class="form-group">
+                            <label for="edit-ataque">ATK</label>
+                            <input type="number" id="edit-ataque" name="ataque" min="1" max="99" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-defensa">DEF</label>
+                            <input type="number" id="edit-defensa" name="defensa" min="1" max="99" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-vida">HP</label>
+                            <input type="number" id="edit-vida" name="vida" min="1" max="999" required>
+                        </div>
+                    </div>
+
+                    <div class="admin-actions">
+                        <button type="submit" class="btn btn-submit">
+                            <span class="btn-text">ACTUALIZAR</span>
+                        </button>
+                        <button type="button" id="btn-delete-character" class="btn btn-danger">
+                            <span class="btn-text">ELIMINAR</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Columna Derecha: Vista previa ensamblada del personaje -->
+                <div class="admin-preview-card">
+                    <div class="preview-badge">VISTA PREVIA</div>
+                    <div class="character-assembly admin-assembly">
+                        <img id="admin-preview-head" class="part-layer" src="" alt="Cabeza">
+                        <img id="admin-preview-torso" class="part-layer" src="" alt="Torso">
+                        <img id="admin-preview-legs" class="part-layer" src="" alt="Piernas">
+                    </div>
+                    <div id="admin-preview-name" class="preview-name-tag"></div>
+                </div>
+
+            </div>
+
+            <div id="admin-form-response"></div>
+        </section>
+
+        <div id="skip-hint">Haz clic para saltar</div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
