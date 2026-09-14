@@ -9,8 +9,9 @@ $input = json_decode(file_get_contents('php://input'), true);
 if (isset($input['id'])) {
     $id = intval($input['id']);
 
-    // Nombre de la tabla corregido a 'personaje' según el script SQL
-    $stmt = $conexion->prepare("DELETE FROM personaje WHERE id = ?");
+    // Solo se permite eliminar personajes creados por la comunidad;
+    // el elenco oficial (es_comunidad = 0) queda protegido.
+    $stmt = $conexion->prepare("DELETE FROM personajes WHERE id = ? AND es_comunidad = 1");
     $stmt->bind_param("i", $id);
 
     if ($stmt->execute()) {
@@ -24,7 +25,7 @@ if (isset($input['id'])) {
             echo json_encode([
                 "status" => "error",
                 "success" => false,
-                "message" => "No se encontró ningún personaje con ese ID."
+                "message" => "No se encontró el personaje, o pertenece al elenco oficial y no puede eliminarse."
             ]);
         }
     } else {

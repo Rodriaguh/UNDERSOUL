@@ -25,9 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Todo personaje creado desde este formulario queda marcado como
+    // "Comunidad" (id_categoria = 3, es_comunidad = 1), separado del
+    // elenco oficial importado de la wiki.
+    $es_comunidad = 1;
+    $id_categoria = 3;
+
     $stmt = $conexion->prepare(
-        "INSERT INTO personaje (nombre, apellido, raza, ataque, defensa, vida, sprite_head, sprite_torso, sprite_legs) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO personajes (nombre, apellido, raza, ataque, defensa, vida, sprite_head, sprite_torso, sprite_legs, es_comunidad, id_categoria) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
     if (!$stmt) {
@@ -36,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $stmt->bind_param(
-        "sssiiisss",
+        "sssiiisssii",
         $nombre, $apellido, $raza, $ataque, $defensa, $vida,
-        $sprite_head, $sprite_torso, $sprite_legs
+        $sprite_head, $sprite_torso, $sprite_legs, $es_comunidad, $id_categoria
     );
 
     if ($stmt->execute()) {

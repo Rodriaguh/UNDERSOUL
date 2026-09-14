@@ -8,6 +8,8 @@ const soulHeart = document.getElementById('soul-heart');
 
 const btnPersonajes = document.getElementById('btn-personajes');
 const btnInicio = document.getElementById('btn-inicio');
+const btnBusqueda = document.getElementById('btn-busqueda');
+const searchInput = document.getElementById('search-personajes');
 const containerCrear = document.getElementById('container-crear');
 const btnCrear = document.getElementById('btn-crear');
 const labelBtnCrear = document.getElementById('label-btn-crear');
@@ -24,7 +26,7 @@ const formResponse = document.getElementById('form-response');
 
 const selectEditCharacter = document.getElementById('select-edit-character');
 
-// CORRECCIÓN: Separar el contenedor visual del formulario real
+// Contenedor visual del formulario real de administración
 const adminFormContainer = document.getElementById('admin-character-form');
 const adminCharacterForm = document.getElementById('admin-form-data');
 
@@ -36,6 +38,8 @@ let animationTimer = null;
 let currentInteractiveIndex = 0;
 let hasCharactersInDB = false;
 let loadedCharacters = [];
+let currentFilter = 'todos';
+let searchTerm = '';
 
 /* --- CATÁLOGO DE SPRITES EN SVG --- */
 const spriteCatalog = {
@@ -93,7 +97,7 @@ function startAnimation() {
     cargarPersonajeAleatorio();
 
     setTimeout(() => {
-        logoWrapper.classList.add('moved-up');
+        if (logoWrapper) logoWrapper.classList.add('moved-up');
     }, 100);
 
     animationTimer = setTimeout(() => {
@@ -107,12 +111,14 @@ function finishAnimation() {
 
     clearTimeout(animationTimer);
 
-    logoWrapper.style.transition = 'top 0.3s ease-out';
-    logoWrapper.classList.add('moved-up');
+    if (logoWrapper) {
+        logoWrapper.style.transition = 'top 0.3s ease-out';
+        logoWrapper.classList.add('moved-up');
+    }
     
-    menuButtons.classList.add('visible');
-    escenarioContainer.classList.add('visible');
-    skipHint.classList.add('hidden');
+    if (menuButtons) menuButtons.classList.add('visible');
+    if (escenarioContainer) escenarioContainer.classList.add('visible');
+    if (skipHint) skipHint.classList.add('hidden');
 
     checkCharactersStatus();
 }
@@ -121,31 +127,38 @@ function checkCharactersStatus() {
     fetch('php/obtener_personajes.php')
         .then(res => res.json())
         .then(data => {
-            if (data.success && data.personajes && data.personajes.length > 0) {
-                hasCharactersInDB = true;
-                loadedCharacters = data.personajes;
-                labelBtnCrear.innerHTML = "crea tu personaje &#9661;";
-                containerCrear.classList.add('dropdown');
-            } else {
-                hasCharactersInDB = false;
-                loadedCharacters = [];
-                labelBtnCrear.innerHTML = "crea tu personaje";
-                containerCrear.classList.remove('dropdown');
+            loadedCharacters = (data.success && data.personajes) ? data.personajes : [];
+
+            const comunidadCount = loadedCharacters.filter(c => Number(c.es_comunidad) === 1).length;
+
+            if (labelBtnCrear && containerCrear) {
+                if (comunidadCount > 0) {
+                    hasCharactersInDB = true;
+                    labelBtnCrear.innerHTML = "crea tu personaje &#9661;";
+                    containerCrear.classList.add('dropdown');
+                } else {
+                    hasCharactersInDB = false;
+                    labelBtnCrear.innerHTML = "crea tu personaje";
+                    containerCrear.classList.remove('dropdown');
+                }
             }
             renderCharacterList();
             populateEditSelect();
         })
         .catch(() => {
             hasCharactersInDB = false;
-            labelBtnCrear.innerHTML = "crea tu personaje";
-            containerCrear.classList.remove('dropdown');
+            loadedCharacters = [];
+            if (labelBtnCrear && containerCrear) {
+                labelBtnCrear.innerHTML = "crea tu personaje";
+                containerCrear.classList.remove('dropdown');
+            }
         });
 }
 
 let currentHeartTarget = null;
 
 function positionHeartOnElement(element) {
-    if (!element) return;
+    if (!element || !soulHeart) return;
 
     currentHeartTarget = element;
 
@@ -161,11 +174,8 @@ function positionHeartOnElement(element) {
     soulHeart.classList.add('active');
 }
 
-/* Si cambia el zoom, el tamaño de ventana o se hace scroll, el corazón
-   recalcula su posición sobre el mismo botón en vez de quedar flotando
-   en coordenadas viejas (y posiblemente fuera de la pantalla). */
 function repositionHeartIfNeeded() {
-    if (!currentHeartTarget) return;
+    if (!currentHeartTarget || !soulHeart) return;
 
     const stillVisible = document.body.contains(currentHeartTarget) &&
         currentHeartTarget.offsetWidth > 0 &&
@@ -212,86 +222,192 @@ function toggleDropdown(button) {
     }
 }
 
-btnPersonajes.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!animationFinished) finishAnimation();
-    toggleDropdown(btnPersonajes);
-});
-
-btnCrear.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!animationFinished) finishAnimation();
-
-    if (hasCharactersInDB) {
-        toggleDropdown(btnCrear);
-    } else {
-        resetCreatorStep();
-        showPanel(creatorSection);
-    }
-});
-
-btnPersonajes.parentElement.querySelectorAll('.dropdown-item').forEach(item => {
-    item.addEventListener('click', () => {
-        showPanel(listSection);
+if (btnPersonajes) {
+    btnPersonajes.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!animationFinished) finishAnimation();
+        toggleDropdown(btnPersonajes);
     });
-});
 
-btnSubCrear.addEventListener('click', () => {
-    resetCreatorStep();
-    showPanel(creatorSection);
-});
-
-btnSubAdmin.addEventListener('click', () => {
-    showPanel(adminSection);
-    populateEditSelect();
-});
-
-function showPanel(panel) {
-    listSection.classList.add('hidden');
-    creatorSection.classList.add('hidden');
-    adminSection.classList.add('hidden');
-
-    panel.classList.remove('hidden');
-    panel.scrollIntoView({ behavior: 'smooth' });
+    btnPersonajes.parentElement.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            currentFilter = item.dataset.filter || 'todos';
+            renderCharacterList();
+            showPanel(listSection);
+        });
+    });
 }
 
-/* --- VOLVER AL INICIO (deja la página limpia, sin paneles abiertos) --- */
+if (btnCrear) {
+    btnCrear.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!animationFinished) finishAnimation();
+
+        if (hasCharactersInDB) {
+            toggleDropdown(btnCrear);
+        } else {
+            resetCreatorStep();
+            showPanel(creatorSection);
+        }
+    });
+}
+
+if (btnBusqueda) {
+    btnBusqueda.addEventListener('click', () => {
+        if (!animationFinished) finishAnimation();
+        currentFilter = 'todos';
+        renderCharacterList();
+        showPanel(listSection);
+        setTimeout(() => searchInput && searchInput.focus(), 350);
+    });
+}
+
+if (searchInput) {
+    searchInput.addEventListener('input', () => {
+        searchTerm = searchInput.value.trim().toLowerCase();
+        renderCharacterList();
+    });
+}
+
+if (btnSubCrear) {
+    btnSubCrear.addEventListener('click', () => {
+        resetCreatorStep();
+        showPanel(creatorSection);
+    });
+}
+
+if (btnSubAdmin) {
+    btnSubAdmin.addEventListener('click', () => {
+        showPanel(adminSection);
+        populateEditSelect();
+    });
+}
+
+function showPanel(panel) {
+    if (!panel) return;
+    if (listSection) listSection.classList.add('hidden');
+    if (creatorSection) creatorSection.classList.add('hidden');
+    if (adminSection) adminSection.classList.add('hidden');
+
+    panel.classList.remove('hidden');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function goHome() {
-    listSection.classList.add('hidden');
-    creatorSection.classList.add('hidden');
-    adminSection.classList.add('hidden');
+    if (listSection) listSection.classList.add('hidden');
+    if (creatorSection) creatorSection.classList.add('hidden');
+    if (adminSection) adminSection.classList.add('hidden');
 
     document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-btnInicio.addEventListener('click', () => {
-    if (!animationFinished) finishAnimation();
-    goHome();
-});
+if (btnInicio) {
+    btnInicio.addEventListener('click', () => {
+        if (!animationFinished) finishAnimation();
+        goHome();
+    });
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function categoriaSlug(nombre) {
+    return (nombre || '').toString().trim().toLowerCase();
+}
+
+function matchesFilter(c) {
+    if (currentFilter === 'todos') return true;
+    return categoriaSlug(c.nombre_categoria) === currentFilter;
+}
+
+function matchesSearch(c) {
+    if (!searchTerm) return true;
+    const nombreCompleto = `${c.nombre || ''} ${c.apellido || ''}`.toLowerCase();
+    return nombreCompleto.includes(searchTerm);
+}
 
 function renderCharacterList() {
+    if (!charactersContainer) return;
     charactersContainer.innerHTML = "";
 
-    loadedCharacters.forEach(c => {
+    const filtrados = loadedCharacters.filter(c => matchesFilter(c) && matchesSearch(c));
+
+    if (filtrados.length === 0) {
+        charactersContainer.innerHTML = '<p class="characters-empty">No hay personajes para mostrar en esta categoría.</p>';
+        return;
+    }
+
+    filtrados.forEach(c => {
+        const esOficial = Number(c.es_comunidad) === 0;
+
         const atkPercent = Math.max(0, Math.min(100, (parseInt(c.ataque) || 0) / 99 * 100));
         const defPercent = Math.max(0, Math.min(100, (parseInt(c.defensa) || 0) / 99 * 100));
         const hpPercent = Math.max(0, Math.min(100, (parseInt(c.vida) || 0) / 99 * 100));
 
-        const headVal = c.sprite_head ?? c.sprite_cabeza ?? c.cabeza ?? c.head;
-        const torsoVal = c.sprite_torso ?? c.torso;
-        const legsVal = c.sprite_legs ?? c.sprite_piernas ?? c.piernas ?? c.legs;
+        let spriteHTML;
+        if (esOficial && c.imagen_url) {
+            spriteHTML = `
+                <div class="character-mini-sprite official">
+                    <img class="official-sprite" src="${escapeHtml(c.imagen_url)}" alt="${escapeHtml(c.nombre)}">
+                </div>
+            `;
+        } else {
+            const headVal = c.sprite_head ?? c.sprite_cabeza ?? c.cabeza ?? c.head;
+            const torsoVal = c.sprite_torso ?? c.torso;
+            const legsVal = c.sprite_legs ?? c.sprite_piernas ?? c.piernas ?? c.legs;
 
-        const headSrc = resolveSpriteSource(headVal, 'head', spriteCatalog.head[0]);
-        const torsoSrc = resolveSpriteSource(torsoVal, 'torso', spriteCatalog.torso[0]);
-        const legsSrc = resolveSpriteSource(legsVal, 'legs', spriteCatalog.legs[0]);
+            const headSrc = resolveSpriteSource(headVal, 'head', spriteCatalog.head[0]);
+            const torsoSrc = resolveSpriteSource(torsoVal, 'torso', spriteCatalog.torso[0]);
+            const legsSrc = resolveSpriteSource(legsVal, 'legs', spriteCatalog.legs[0]);
+
+            spriteHTML = `
+                <div class="character-mini-sprite">
+                    <img class="mini-part mini-head" src='${headSrc}' alt="Cabeza">
+                    <img class="mini-part mini-torso" src='${torsoSrc}' alt="Torso">
+                    <img class="mini-part mini-legs" src='${legsSrc}' alt="Piernas">
+                </div>
+            `;
+        }
+
+        let loreHTML = '';
+        if (c.historia_completa || c.musica_tema || c.dialogo_clave) {
+            loreHTML = `
+                <div class="lore-block">
+                    ${c.historia_completa ? `<p class="lore-historia">${escapeHtml(c.historia_completa)}</p>` : ''}
+                    ${c.musica_tema ? `<p class="lore-musica"><strong>Tema musical:</strong> ${escapeHtml(c.musica_tema)}</p>` : ''}
+                    ${c.dialogo_clave ? `<p class="lore-dialogo">"${escapeHtml(c.dialogo_clave)}"</p>` : ''}
+                </div>
+            `;
+        } else if (c.descripcion) {
+            loreHTML = `<div class="lore-block"><p class="lore-historia">${escapeHtml(c.descripcion)}</p></div>`;
+        }
+
+        const nombreCompleto = `${escapeHtml((c.nombre || '').toUpperCase())} ${escapeHtml((c.apellido || '').toUpperCase())}`.trim();
+        const tagOrigen = esOficial
+            ? '<span class="tag-origen tag-oficial">OFICIAL</span>'
+            : '<span class="tag-origen tag-comunidad">COMUNIDAD</span>';
+        const categoriaBadge = c.nombre_categoria
+            ? `<span class="badge badge-categoria">${escapeHtml(c.nombre_categoria)}</span>`
+            : '';
 
         const charHTML = `
             <div class="character-card">
                 <div class="char-header">
-                    <h3>${c.nombre.toUpperCase()} ${c.apellido.toUpperCase()}</h3>
-                    <span class="badge">${c.raza}</span>
+                    <h3>${nombreCompleto}</h3>
+                    <span class="badge">${escapeHtml(c.raza)}</span>
+                </div>
+                <div class="char-tags">
+                    ${tagOrigen}
+                    ${categoriaBadge}
                 </div>
                 <div class="char-stats">
                     <p><strong>ATK:</strong> ${c.ataque}</p>
@@ -302,63 +418,186 @@ function renderCharacterList() {
 
                 <p class="card-toggle-hint">&#9662; Ver estadísticas</p>
 
-                <div class="character-details hidden">
-                    <div class="character-mini-sprite">
-                        <img class="mini-part mini-head" src='${headSrc}' alt="Cabeza">
-                        <img class="mini-part mini-torso" src='${torsoSrc}' alt="Torso">
-                        <img class="mini-part mini-legs" src='${legsSrc}' alt="Piernas">
+                <div class="character-details hidden" data-id="${c.id}">
+                    <div class="details-top-row">
+                        ${spriteHTML}
+                        <div class="stat-bars">
+                            <div class="stat-bar-row">
+                                <span class="stat-bar-label">ATK</span>
+                                <div class="stat-bar-track"><div class="stat-bar-fill atk" style="width: ${atkPercent}%;"></div></div>
+                                <span class="stat-bar-value">${c.ataque}</span>
+                            </div>
+                            <div class="stat-bar-row">
+                                <span class="stat-bar-label">DEF</span>
+                                <div class="stat-bar-track"><div class="stat-bar-fill def" style="width: ${defPercent}%;"></div></div>
+                                <span class="stat-bar-value">${c.defensa}</span>
+                            </div>
+                            <div class="stat-bar-row">
+                                <span class="stat-bar-label">HP</span>
+                                <div class="stat-bar-track"><div class="stat-bar-fill hp" style="width: ${hpPercent}%;"></div></div>
+                                <span class="stat-bar-value">${c.vida}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="stat-bars">
-                        <div class="stat-bar-row">
-                            <span class="stat-bar-label">ATK</span>
-                            <div class="stat-bar-track"><div class="stat-bar-fill atk" style="width: ${atkPercent}%;"></div></div>
-                            <span class="stat-bar-value">${c.ataque}</span>
-                        </div>
-                        <div class="stat-bar-row">
-                            <span class="stat-bar-label">DEF</span>
-                            <div class="stat-bar-track"><div class="stat-bar-fill def" style="width: ${defPercent}%;"></div></div>
-                            <span class="stat-bar-value">${c.defensa}</span>
-                        </div>
-                        <div class="stat-bar-row">
-                            <span class="stat-bar-label">HP</span>
-                            <div class="stat-bar-track"><div class="stat-bar-fill hp" style="width: ${hpPercent}%;"></div></div>
-                            <span class="stat-bar-value">${c.vida}</span>
-                        </div>
+                    ${loreHTML}
+                    <div class="comments-section">
+                        <h4 class="comments-title">Comentarios</h4>
+                        <input type="text" class="comment-search-input" placeholder="Filtrar comentarios..." data-search-for="${c.id}">
+                        <div class="comments-list" data-comments-for="${c.id}"></div>
+                        <form class="comment-form" data-comment-form-for="${c.id}">
+                            <input type="text" class="comment-author" placeholder="Tu nombre" maxlength="50" required>
+                            <textarea class="comment-content" placeholder="Escribe un comentario..." maxlength="500" required></textarea>
+                            <button type="submit" class="btn btn-submit"><span class="btn-text">COMENTAR</span></button>
+                        </form>
                     </div>
                 </div>
             </div>
         `;
         charactersContainer.insertAdjacentHTML('beforeend', charHTML);
+
+        if (esOficial && c.imagen_url) {
+            const cardEl = charactersContainer.lastElementChild;
+            const officialImg = cardEl ? cardEl.querySelector('.official-sprite') : null;
+            if (officialImg) {
+                officialImg.addEventListener('error', function onImgError() {
+                    officialImg.removeEventListener('error', onImgError);
+                    officialImg.src = spriteCatalog.head[0];
+                });
+            }
+        }
     });
 }
 
-/* --- EXPANDIR / COLAPSAR ESTADÍSTICAS AL CLICKEAR UNA TARJETA --- */
-charactersContainer.addEventListener('click', (e) => {
-    const card = e.target.closest('.character-card');
-    if (!card) return;
+function cargarComentarios(idPersonaje, contenedor) {
+    if (!contenedor) return;
+    contenedor.innerHTML = '<p class="comments-loading">Cargando comentarios...</p>';
 
-    const details = card.querySelector('.character-details');
-    const hint = card.querySelector('.card-toggle-hint');
-    if (!details) return;
+    fetch(`php/obtener_comentarios.php?id_personaje=${encodeURIComponent(idPersonaje)}`)
+        .then(res => res.json())
+        .then(data => {
+            contenedor.dataset.loaded = '1';
+            contenedor.innerHTML = '';
 
-    const nowHidden = details.classList.toggle('hidden');
-    card.classList.toggle('expanded', !nowHidden);
-    if (hint) {
-        hint.innerHTML = nowHidden ? '&#9662; Ver estadísticas' : '&#9652; Ocultar estadísticas';
-    }
-});
+            if (data.success && data.comentarios && data.comentarios.length > 0) {
+                data.comentarios.forEach(com => {
+                    const item = document.createElement('div');
+                    item.className = 'comment-item';
+
+                    const author = document.createElement('span');
+                    author.className = 'comment-author-tag';
+                    author.textContent = com.nombre_autor;
+
+                    const text = document.createElement('p');
+                    text.className = 'comment-text';
+                    text.textContent = com.contenido;
+
+                    item.appendChild(author);
+                    item.appendChild(text);
+                    contenedor.appendChild(item);
+                });
+            } else {
+                contenedor.innerHTML = '<p class="comments-empty">Sé el primero en comentar.</p>';
+            }
+        })
+        .catch(() => {
+            contenedor.dataset.loaded = '';
+            contenedor.innerHTML = '<p class="comments-empty">No se pudieron cargar los comentarios.</p>';
+        });
+}
+
+if (charactersContainer) {
+    /* --- BUSCADOR / FILTRO EN VIVO DE COMENTARIOS --- */
+    charactersContainer.addEventListener('input', (e) => {
+        if (!e.target.classList.contains('comment-search-input')) return;
+        const query = e.target.value.trim().toLowerCase();
+        const cardDetails = e.target.closest('.character-details');
+        if (!cardDetails) return;
+
+        const commentItems = cardDetails.querySelectorAll('.comment-item');
+        for (let i = 0; i < commentItems.length; i++) {
+            const text = commentItems[i].textContent.toLowerCase();
+            commentItems[i].style.display = text.includes(query) ? 'block' : 'none';
+        }
+    });
+
+    charactersContainer.addEventListener('click', (e) => {
+        if (e.target.closest('.comment-form') || e.target.classList.contains('comment-search-input')) return;
+
+        const card = e.target.closest('.character-card');
+        if (!card) return;
+
+        const details = card.querySelector('.character-details');
+        const hint = card.querySelector('.card-toggle-hint');
+        if (!details) return;
+
+        const nowHidden = details.classList.toggle('hidden');
+        card.classList.toggle('expanded', !nowHidden);
+        if (hint) {
+            hint.innerHTML = nowHidden ? '&#9662; Ver estadísticas' : '&#9652; Ocultar estadísticas';
+        }
+
+        if (!nowHidden) {
+            const commentsList = details.querySelector('.comments-list');
+            if (commentsList && !commentsList.dataset.loaded) {
+                cargarComentarios(details.dataset.id, commentsList);
+            }
+        }
+    });
+
+    charactersContainer.addEventListener('submit', function(e) {
+        const form = e.target.closest('.comment-form');
+        if (!form) return;
+        e.preventDefault();
+
+        const idPersonaje = form.dataset.commentFormFor;
+        const authorInput = form.querySelector('.comment-author');
+        const contentInput = form.querySelector('.comment-content');
+
+        const nombre_autor = authorInput.value.trim();
+        const contenido = contentInput.value.trim();
+        if (!nombre_autor || !contenido) return;
+
+        const formData = new FormData();
+        formData.append('id_personaje', idPersonaje);
+        formData.append('nombre_autor', nombre_autor);
+        formData.append('contenido', contenido);
+
+        fetch('php/agregar_comentario.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                contentInput.value = '';
+                const commentsList = form.closest('.character-details').querySelector('.comments-list');
+                if (commentsList) {
+                    commentsList.dataset.loaded = '';
+                    cargarComentarios(idPersonaje, commentsList);
+                }
+            } else {
+                alert(data.message || 'No se pudo publicar el comentario.');
+            }
+        })
+        .catch(() => {
+            alert('Ocurrió un error al conectar con el servidor.');
+        });
+    });
+}
 
 function populateEditSelect() {
+    if (!selectEditCharacter) return;
     selectEditCharacter.innerHTML = '<option value="">-- Selecciona un personaje --</option>';
-    loadedCharacters.forEach(c => {
-        const option = document.createElement('option');
-        option.value = c.id;
-        option.textContent = `${c.nombre} ${c.apellido} (${c.raza})`;
-        selectEditCharacter.appendChild(option);
-    });
+    loadedCharacters
+        .filter(c => Number(c.es_comunidad) === 1)
+        .forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id;
+            option.textContent = `${c.nombre} ${c.apellido || ''} (${c.raza})`.trim();
+            selectEditCharacter.appendChild(option);
+        });
 }
 
-/* --- OBTENCIÓN Y VALIDACIÓN DE RUTA DE SPRITES --- */
 function resolveSpriteSource(val, category, defaultFallback) {
     if (!val) return defaultFallback;
     
@@ -374,44 +613,46 @@ function resolveSpriteSource(val, category, defaultFallback) {
     return defaultFallback;
 }
 
-selectEditCharacter.addEventListener('change', () => {
-    const charId = selectEditCharacter.value;
-    if (!charId) {
-        adminFormContainer.classList.add('hidden'); // Usa el contenedor principal del form
-        return;
-    }
-
-    const character = loadedCharacters.find(c => String(c.id) === String(charId));
-    
-    if (character) {
-        document.getElementById('edit-id').value = character.id;
-        document.getElementById('edit-nombre').value = character.nombre || '';
-        document.getElementById('edit-apellido').value = character.apellido || '';
-        document.getElementById('edit-raza').value = character.raza || 'Humano';
-        document.getElementById('edit-ataque').value = character.ataque || 10;
-        document.getElementById('edit-defensa').value = character.defensa || 10;
-        document.getElementById('edit-vida').value = character.vida || 20;
-
-    const headVal = character.sprite_head ?? character.sprite_cabeza ?? character.cabeza ?? character.head;
-const torsoVal = character.sprite_torso ?? character.torso;
-const legsVal = character.sprite_legs ?? character.sprite_piernas ?? character.piernas ?? character.legs;
-
-        const headImg = document.getElementById('admin-preview-head');
-        const torsoImg = document.getElementById('admin-preview-torso');
-        const legsImg = document.getElementById('admin-preview-legs');
-
-        if (headImg) headImg.src = resolveSpriteSource(headVal, 'head', spriteCatalog.head[0]);
-        if (torsoImg) torsoImg.src = resolveSpriteSource(torsoVal, 'torso', spriteCatalog.torso[0]);
-        if (legsImg) legsImg.src = resolveSpriteSource(legsVal, 'legs', spriteCatalog.legs[0]);
-        
-        const previewName = document.getElementById('admin-preview-name');
-        if (previewName) {
-            previewName.innerText = (character.nombre || '').toUpperCase();
+if (selectEditCharacter) {
+    selectEditCharacter.addEventListener('change', () => {
+        const charId = selectEditCharacter.value;
+        if (!charId) {
+            if (adminFormContainer) adminFormContainer.classList.add('hidden');
+            return;
         }
 
-        adminFormContainer.classList.remove('hidden'); // Muestra la caja visual
-    }
-});
+        const character = loadedCharacters.find(c => String(c.id) === String(charId));
+        
+        if (character) {
+            document.getElementById('edit-id').value = character.id;
+            document.getElementById('edit-nombre').value = character.nombre || '';
+            document.getElementById('edit-apellido').value = character.apellido || '';
+            document.getElementById('edit-raza').value = character.raza || 'Humano';
+            document.getElementById('edit-ataque').value = character.ataque || 10;
+            document.getElementById('edit-defensa').value = character.defensa || 10;
+            document.getElementById('edit-vida').value = character.vida || 20;
+
+            const headVal = character.sprite_head ?? character.sprite_cabeza ?? character.cabeza ?? character.head;
+            const torsoVal = character.sprite_torso ?? character.torso;
+            const legsVal = character.sprite_legs ?? character.sprite_piernas ?? character.piernas ?? character.legs;
+
+            const headImg = document.getElementById('admin-preview-head');
+            const torsoImg = document.getElementById('admin-preview-torso');
+            const legsImg = document.getElementById('admin-preview-legs');
+
+            if (headImg) headImg.src = resolveSpriteSource(headVal, 'head', spriteCatalog.head[0]);
+            if (torsoImg) torsoImg.src = resolveSpriteSource(torsoVal, 'torso', spriteCatalog.torso[0]);
+            if (legsImg) legsImg.src = resolveSpriteSource(legsVal, 'legs', spriteCatalog.legs[0]);
+            
+            const previewName = document.getElementById('admin-preview-name');
+            if (previewName) {
+                previewName.innerText = (character.nombre || '').toUpperCase();
+            }
+
+            if (adminFormContainer) adminFormContainer.classList.remove('hidden');
+        }
+    });
+}
 
 /* --- LÓGICA DEL CREADOR ESTILO GONER MAKER --- */
 let currentStep = 0;
@@ -447,9 +688,14 @@ function resetCreatorStep() {
     currentStep = 0;
     selectedIndexes = { head: 0, torso: 0, legs: 0 };
     
-    document.getElementById('creator-step-title').innerText = stepTitles[0];
-    document.getElementById('carousel-controls').classList.remove('hidden');
-    document.getElementById('final-stats-fields').classList.add('hidden');
+    const titleEl = document.getElementById('creator-step-title');
+    if (titleEl) titleEl.innerText = stepTitles[0];
+
+    const carouselControls = document.getElementById('carousel-controls');
+    if (carouselControls) carouselControls.classList.remove('hidden');
+
+    const finalFields = document.getElementById('final-stats-fields');
+    if (finalFields) finalFields.classList.add('hidden');
     
     const btnAction = document.getElementById('btn-step-action');
     if (btnAction) {
@@ -462,7 +708,7 @@ function resetCreatorStep() {
     });
 
     updateCarouselView();
-    formResponse.innerText = "";
+    if (formResponse) formResponse.innerText = "";
 }
 
 function navigatePart(direction) {
@@ -474,85 +720,102 @@ function navigatePart(direction) {
     updateCarouselView();
 }
 
-document.getElementById('btn-prev-part').addEventListener('click', () => navigatePart(-1));
-document.getElementById('btn-next-part').addEventListener('click', () => navigatePart(1));
+const btnPrevPart = document.getElementById('btn-prev-part');
+if (btnPrevPart) btnPrevPart.addEventListener('click', () => navigatePart(-1));
 
-document.getElementById('btn-step-action').addEventListener('click', function() {
-    if (currentStep < 2) {
-        currentStep++;
-        document.getElementById('creator-step-title').innerText = stepTitles[currentStep];
-        updateCarouselView();
-    } else if (currentStep === 2) {
-        currentStep = 3;
-        document.getElementById('creator-step-title').innerText = stepTitles[3];
-        document.getElementById('carousel-controls').classList.add('hidden');
-        document.getElementById('final-stats-fields').classList.remove('hidden');
-        this.querySelector('.btn-text').innerText = "GUARDAR EN BD";
-    } else {
-        document.getElementById('sprite-head').value = spriteCatalog.head[selectedIndexes.head];
-        document.getElementById('sprite-torso').value = spriteCatalog.torso[selectedIndexes.torso];
-        document.getElementById('sprite-legs').value = spriteCatalog.legs[selectedIndexes.legs];
+const btnNextPart = document.getElementById('btn-next-part');
+if (btnNextPart) btnNextPart.addEventListener('click', () => navigatePart(1));
 
-        characterForm.requestSubmit();
-    }
-});
+const btnStepAction = document.getElementById('btn-step-action');
+if (btnStepAction) {
+    btnStepAction.addEventListener('click', function() {
+        if (currentStep < 2) {
+            currentStep++;
+            document.getElementById('creator-step-title').innerText = stepTitles[currentStep];
+            updateCarouselView();
+        } else if (currentStep === 2) {
+            currentStep = 3;
+            document.getElementById('creator-step-title').innerText = stepTitles[3];
+            document.getElementById('carousel-controls').classList.add('hidden');
+            document.getElementById('final-stats-fields').classList.remove('hidden');
+            this.querySelector('.btn-text').innerText = "GUARDAR EN BD";
+        } else {
+            document.getElementById('sprite-head').value = spriteCatalog.head[selectedIndexes.head];
+            document.getElementById('sprite-torso').value = spriteCatalog.torso[selectedIndexes.torso];
+            document.getElementById('sprite-legs').value = spriteCatalog.legs[selectedIndexes.legs];
+
+            if (characterForm) characterForm.requestSubmit();
+        }
+    });
+}
 
 /* --- GUARDAR PERSONAJE EN PHP --- */
-characterForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(characterForm);
+if (characterForm) {
+    characterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(characterForm);
 
-    fetch('php/guardar_personaje.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            formResponse.textContent = data.message || "¡PERSONAJE GUARDADO EN BD CON ÉXITO!";
-            formResponse.className = "msg-success";
-            characterForm.reset();
-            checkCharactersStatus();
-            setTimeout(() => showPanel(listSection), 1200);
-        } else {
-            formResponse.textContent = data.message || "Error al guardar el personaje.";
-            formResponse.className = "msg-error";
-        }
-    })
-    .catch(() => {
-        formResponse.textContent = 'Ocurrió un error al conectar con el servidor.';
-        formResponse.className = "msg-error";
+        fetch('php/guardar_personaje.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (formResponse) {
+                    formResponse.textContent = data.message || "¡PERSONAJE GUARDADO EN BD CON ÉXITO!";
+                    formResponse.className = "msg-success";
+                }
+                characterForm.reset();
+                checkCharactersStatus();
+                setTimeout(() => showPanel(listSection), 1200);
+            } else if (formResponse) {
+                formResponse.textContent = data.message || "Error al guardar el personaje.";
+                formResponse.className = "msg-error";
+            }
+        })
+        .catch(() => {
+            if (formResponse) {
+                formResponse.textContent = 'Ocurrió un error al conectar con el servidor.';
+                formResponse.className = "msg-error";
+            }
+        });
     });
-});
+}
 
 /* --- EDITAR PERSONAJE --- */
-// CORRECCIÓN: Ahora escucha directamente el formulario HTML real
-adminCharacterForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(adminCharacterForm);
+if (adminCharacterForm) {
+    adminCharacterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(adminCharacterForm);
 
-    fetch('php/editar_personajes.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success || data.status === 'success') {
-            adminFormResponse.textContent = data.message || "Personaje actualizado correctamente.";
-            adminFormResponse.className = "msg-success";
-            checkCharactersStatus();
-        } else {
-            adminFormResponse.textContent = data.message || "No se pudo actualizar el personaje.";
-            adminFormResponse.className = "msg-error";
-        }
-    })
-    .catch(error => {
-        console.error('Error al actualizar:', error);
-        adminFormResponse.textContent = 'Ocurrió un error al conectar con el servidor.';
-        adminFormResponse.className = "msg-error";
+        fetch('php/editar_personajes.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (adminFormResponse) {
+                if (data.success || data.status === 'success') {
+                    adminFormResponse.textContent = data.message || "Personaje actualizado correctamente.";
+                    adminFormResponse.className = "msg-success";
+                    checkCharactersStatus();
+                } else {
+                    adminFormResponse.textContent = data.message || "No se pudo actualizar el personaje.";
+                    adminFormResponse.className = "msg-error";
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error al actualizar:', error);
+            if (adminFormResponse) {
+                adminFormResponse.textContent = 'Ocurrió un error al conectar con el servidor.';
+                adminFormResponse.className = "msg-error";
+            }
+        });
     });
-});
+}
 
 /* --- ELIMINAR PERSONAJE --- */
 function eliminarPersonaje(id, elementoDOM = null) {
@@ -566,76 +829,59 @@ function eliminarPersonaje(id, elementoDOM = null) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success' || data.success) {
-            adminFormResponse.textContent = data.message || "Personaje eliminado correctamente de la base de datos.";
-            adminFormResponse.className = "msg-success";
+            if (adminFormResponse) {
+                adminFormResponse.textContent = data.message || "Personaje eliminado correctamente de la base de datos.";
+                adminFormResponse.className = "msg-success";
+            }
+
+            if (adminCharacterForm) adminCharacterForm.reset();
+            if (adminFormContainer) adminFormContainer.classList.add('hidden');
             
-            adminFormContainer.classList.add('hidden');
+            checkCharactersStatus();
 
             if (elementoDOM) {
                 elementoDOM.remove();
             }
-
-            checkCharactersStatus();
-        } else {
-            const errorMsg = data.message || "Error al intentar eliminar el personaje.";
-            adminFormResponse.textContent = errorMsg;
+        } else if (adminFormResponse) {
+            adminFormResponse.textContent = data.message || "No se pudo eliminar el personaje.";
             adminFormResponse.className = "msg-error";
         }
     })
     .catch(error => {
-        console.error('Error al intentar eliminar:', error);
-        adminFormResponse.textContent = 'Ocurrió un error al conectar con el servidor.';
-        adminFormResponse.className = "msg-error";
+        console.error('Error al eliminar:', error);
+        if (adminFormResponse) {
+            adminFormResponse.textContent = 'Ocurrió un error al conectar con el servidor.';
+            adminFormResponse.className = "msg-error";
+        }
     });
 }
 
-btnDeleteCharacter.addEventListener('click', () => {
-    const charId = document.getElementById('edit-id').value;
-    if (!charId) {
-        alert("Selecciona un personaje primero.");
-        return;
-    }
-
-    if (confirm("¿Estás seguro de que deseas eliminar este personaje de la base de datos?")) {
-        eliminarPersonaje(charId);
-    }
-});
-
-/* --- NAVEGACIÓN Y TECLADO --- */
-document.addEventListener('keydown', (e) => {
-    if (!animationFinished) {
-        if (e.key === 'Enter' || e.key === ' ') finishAnimation();
-        return;
-    }
-
-    const visibleButtons = getVisibleButtons();
-    if (visibleButtons.length === 0) return;
-
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+/* --- EVENTO ELIMINAR PERSONAJE DESDE ADMIN --- */
+if (btnDeleteCharacter) {
+    btnDeleteCharacter.addEventListener('click', (e) => {
         e.preventDefault();
-
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-            currentInteractiveIndex = (currentInteractiveIndex + 1) % visibleButtons.length;
-        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-            currentInteractiveIndex = (currentInteractiveIndex - 1 + visibleButtons.length) % visibleButtons.length;
+        const editIdEl = document.getElementById('edit-id');
+        const charId = editIdEl ? editIdEl.value : null;
+        
+        if (charId) {
+            const confirmar = confirm("¿Estás seguro de que deseas eliminar este personaje? Esta acción es irreversible.");
+            if (confirmar) {
+                eliminarPersonaje(charId);
+            }
         }
+    });
+}
 
-        const selected = visibleButtons[currentInteractiveIndex];
-        visibleButtons.forEach(b => b.classList.remove('keyboard-selected'));
-        selected.classList.add('keyboard-selected');
-        positionHeartOnElement(selected);
-    }
+/* --- INICIALIZACIÓN DEL DOM --- */
+document.addEventListener('DOMContentLoaded', () => {
+    startAnimation();
 
-    if (e.key === 'Enter') {
-        const selected = visibleButtons[currentInteractiveIndex];
-        if (selected) selected.click();
-    }
-});
-
-appContainer.addEventListener('click', (e) => {
-    if (!animationFinished && !e.target.closest('#menu-buttons') && !e.target.closest('.panel-section')) {
+    const skipHandler = () => {
         finishAnimation();
-    }
-});
+        document.removeEventListener('click', skipHandler);
+        document.removeEventListener('keydown', skipHandler);
+    };
 
-window.onload = startAnimation;
+    document.addEventListener('click', skipHandler);
+    document.addEventListener('keydown', skipHandler);
+});

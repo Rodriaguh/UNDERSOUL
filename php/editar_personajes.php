@@ -21,7 +21,21 @@ if ($id && $nombre !== null) {
     $defensa = intval($defensa);
     $vida = intval($vida);
 
-    $stmt = $conexion->prepare("UPDATE personaje SET nombre = ?, apellido = ?, raza = ?, ataque = ?, defensa = ?, vida = ? WHERE id = ?");
+    if (!in_array($raza, ['Humano', 'Monstruo'])) {
+        echo json_encode([
+            "success" => false,
+            "status" => "error",
+            "message" => "Raza inválida seleccionada."
+        ]);
+        exit;
+    }
+
+    // Solo se permite editar personajes creados por la comunidad;
+    // el elenco oficial (es_comunidad = 0) queda protegido.
+    $stmt = $conexion->prepare(
+        "UPDATE personajes SET nombre = ?, apellido = ?, raza = ?, ataque = ?, defensa = ?, vida = ? 
+         WHERE id = ? AND es_comunidad = 1"
+    );
     
     if (!$stmt) {
         echo json_encode([
@@ -35,11 +49,19 @@ if ($id && $nombre !== null) {
     $stmt->bind_param("sssiiii", $nombre, $apellido, $raza, $ataque, $defensa, $vida, $id);
 
     if ($stmt->execute()) {
-        echo json_encode([
-            "success" => true,
-            "status" => "success",
-            "message" => "Personaje actualizado correctamente."
-        ]);
+        if ($stmt->affected_rows > 0) {
+            echo json_encode([
+                "success" => true,
+                "status" => "success",
+                "message" => "Personaje actualizado correctamente."
+            ]);
+        } else {
+            echo json_encode([
+                "success" => false,
+                "status" => "error",
+                "message" => "No se pudo actualizar: el personaje no existe o pertenece al elenco oficial (no editable)."
+            ]);
+        }
     } else {
         echo json_encode([
             "success" => false,
