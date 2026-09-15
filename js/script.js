@@ -42,23 +42,32 @@ let currentFilter = 'todos';
 let searchTerm = '';
 
 /* --- CATÁLOGO DE SPRITES EN SVG --- */
-const spriteCatalog = {
-    head: [
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="4" y="2" width="8" height="10" fill="white"/><rect x="6" y="5" width="2" height="2" fill="black"/><rect x="10" y="5" width="2" height="2" fill="black"/></svg>',
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="8" fill="cyan"/><rect x="5" y="6" width="2" height="2" fill="red"/><rect x="9" y="6" width="2" height="2" fill="red"/></svg>',
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><polygon points="8,2 3,12 13,12" fill="yellow"/><circle cx="7" cy="7" r="1" fill="black"/><circle cx="9" cy="7" r="1" fill="black"/></svg>'
-    ],
-    torso: [
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="4" y="2" width="8" height="12" fill="gray"/><rect x="7" y="2" width="2" height="12" fill="blue"/></svg>',
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="3" y="1" width="10" height="13" fill="purple"/><rect x="6" y="5" width="4" height="4" fill="yellow"/></svg>',
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="4" y="3" width="8" height="10" fill="green"/></svg>'
-    ],
-    legs: [
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="5" y="1" width="2" height="12" fill="white"/><rect x="9" y="1" width="2" height="12" fill="white"/></svg>',
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="4" y="2" width="3" height="10" fill="blue"/><rect x="9" y="2" width="3" height="10" fill="blue"/></svg>',
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="5" y="0" width="6" height="14" fill="red"/></svg>'
-    ]
-};
+    const spriteCatalog = {
+        head: [
+            'img/cabezas/plantilla_cabeza01.png',
+            'img/cabezas/plantilla_cabeza02.png',
+            'img/cabezas/plantilla_cabeza03.png',
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="4" y="2" width="8" height="10" fill="white"/><rect x="6" y="5" width="2" height="2" fill="black"/><rect x="10" y="5" width="2" height="2" fill="black"/></svg>',
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="8" fill="cyan"/><rect x="5" y="6" width="2" height="2" fill="red"/><rect x="9" y="6" width="2" height="2" fill="red"/></svg>',
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><polygon points="8,2 3,12 13,12" fill="yellow"/><circle cx="7" cy="7" r="1" fill="black"/><circle cx="9" cy="7" r="1" fill="black"/></svg>'
+        ],
+
+        torso: [
+            'img/torsos/torso_plantilla01.png',
+            'img/torsos/torso_plantilla02.png',
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="4" y="2" width="8" height="12" fill="gray"/><rect x="7" y="2" width="2" height="12" fill="blue"/></svg>',
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="3" y="1" width="10" height="13" fill="purple"/><rect x="6" y="5" width="4" height="4" fill="yellow"/></svg>',
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="4" y="3" width="8" height="10" fill="green"/></svg>'
+        ],
+        legs: [
+            'img/piernas/plantilla_piernas01.png',
+            'img/piernas/plantilla_piernas02.png',
+            
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="5" y="1" width="2" height="12" fill="white"/><rect x="9" y="1" width="2" height="12" fill="white"/></svg>',
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="4" y="2" width="3" height="10" fill="blue"/><rect x="9" y="2" width="3" height="10" fill="blue"/></svg>',
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16"><rect x="5" y="0" width="6" height="14" fill="red"/></svg>'
+        ]
+    };
 
 // Rutas a las imágenes de los personajes del escenario
 const personajesList = [
@@ -157,58 +166,116 @@ function checkCharactersStatus() {
 
 let currentHeartTarget = null;
 
-function positionHeartOnElement(element) {
+function positionHeartOnElement(element, opened = false) {
     if (!element || !soulHeart) return;
 
     currentHeartTarget = element;
 
     const rect = element.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
-    const left = rect.left + scrollLeft + 12; 
-    const top = rect.top + scrollTop + (rect.height / 2) - 8;
+    /*
+     * El corazón queda dentro del botón.
+     *
+     * Los botones tienen padding-left: 34px,
+     * así que aprovechamos ese espacio.
+     */
+    const left = rect.left + 10;
+    const top = rect.top + (rect.height / 2) - 8;
 
     soulHeart.style.left = `${left}px`;
     soulHeart.style.top = `${top}px`;
+
     soulHeart.classList.add('active');
+
+    if (opened) {
+        soulHeart.classList.add('inside');
+    } else {
+        soulHeart.classList.remove('inside');
+    }
 }
 
-function repositionHeartIfNeeded() {
-    if (!currentHeartTarget || !soulHeart) return;
 
-    const stillVisible = document.body.contains(currentHeartTarget) &&
-        currentHeartTarget.offsetWidth > 0 &&
-        currentHeartTarget.offsetHeight > 0;
+/* Entrar a un botón */
+document.addEventListener('pointerover', (e) => {
+    if (!animationFinished) return;
 
-    if (!stillVisible) {
-        soulHeart.classList.remove('active');
-        currentHeartTarget = null;
+    const button = e.target.closest('.btn');
+
+    if (!button) return;
+
+    /*
+     * Evita volver a ejecutar la animación
+     * cuando pasamos de un elemento hijo
+     * del mismo botón a otro.
+     */
+    const from = e.relatedTarget;
+
+    if (from && from.closest && from.closest('.btn') === button) {
         return;
     }
 
-    positionHeartOnElement(currentHeartTarget);
-}
+    positionHeartOnElement(button, true);
+});
 
-window.addEventListener('resize', repositionHeartIfNeeded);
-window.addEventListener('scroll', repositionHeartIfNeeded, { passive: true });
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', repositionHeartIfNeeded);
-    window.visualViewport.addEventListener('scroll', repositionHeartIfNeeded);
-}
 
-function getVisibleButtons() {
-    return Array.from(document.querySelectorAll('.btn:not(.hidden)'))
-        .filter(b => b.offsetWidth > 0 && b.offsetHeight > 0);
-}
-
-document.addEventListener('mousemove', (e) => {
+/* Salir de un botón */
+document.addEventListener('pointerout', (e) => {
     if (!animationFinished) return;
-    const targetBtn = e.target.closest('.btn');
-    if (targetBtn) {
-        positionHeartOnElement(targetBtn);
+
+    const button = e.target.closest('.btn');
+
+    if (!button) return;
+
+    const to = e.relatedTarget;
+
+    /*
+     * Si seguimos dentro del mismo botón,
+     * no hacemos nada.
+     */
+    if (to && to.closest && to.closest('.btn') === button) {
+        return;
+    }
+
+    /*
+     * Si vamos directamente a otro botón,
+     * no ocultamos el corazón.
+     * El siguiente pointerover lo mueve.
+     */
+    if (to && to.closest && to.closest('.btn')) {
+        return;
+    }
+
+    /*
+     * Salimos completamente del botón.
+     * Cerramos el corazón.
+     */
+    currentHeartTarget = null;
+    soulHeart.classList.remove('inside');
+
+    setTimeout(() => {
+        if (!currentHeartTarget) {
+            soulHeart.classList.remove('active');
+        }
+    }, 80);
+});
+
+
+/* Si cambia el tamaño de la ventana */
+window.addEventListener('resize', () => {
+    if (currentHeartTarget) {
+        const opened = soulHeart.classList.contains('inside');
+        positionHeartOnElement(currentHeartTarget, opened);
     }
 });
+
+
+/* Si se hace scroll */
+window.addEventListener('scroll', () => {
+    if (currentHeartTarget) {
+        const opened = soulHeart.classList.contains('inside');
+        positionHeartOnElement(currentHeartTarget, opened);
+    }
+}, { passive: true });
 
 function toggleDropdown(button) {
     const dropdown = button.closest('.dropdown');
